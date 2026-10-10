@@ -10,7 +10,8 @@ import {
     createOrder,
     getMyOrders,
     getOrderById,
-    updateOrderStatus
+    updateOrderStatus,
+    checkoutFromCart
 } from "../controllers/order.controller.js";
 
 import {
@@ -160,5 +161,27 @@ router.put(
     authorizeRoles("seller", "admin"),
     updateOrderStatus
 );
+
+
+/**
+ * @swagger
+ * /api/orders/checkout:
+ *   post:
+ *     summary: Checkout using the logged-in user's cart
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Checkout successful
+ *       400:
+ *         description: Cart is empty or insufficient stock
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Checkout failed
+ */
+
+router.post("/checkout", authenticate, checkoutFromCart);
 
 export default router;

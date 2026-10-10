@@ -1,3 +1,4 @@
+
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
@@ -20,6 +21,12 @@ const Order = sequelize.define("Order", {
 
     status: {
         type: DataTypes.STRING,
+        defaultValue: "pending"
+    },
+
+    paymentStatus: {
+        type: DataTypes.STRING,
+        allowNull: false,
         defaultValue: "pending"
     }
 });

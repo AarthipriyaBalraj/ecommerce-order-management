@@ -15,8 +15,13 @@ import "./src/models/associations.js";
 
 import orderRoutes from "./src/routes/order.routes.js";
 
+import Cart from "./src/models/cart.js";
+import cartRoutes from "./src/routes/cart.routes.js";
+
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger.js";
+
+import paymentRoutes from "./src/routes/payment.routes.js";
 
 dotenv.config();
 
@@ -28,7 +33,8 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
-
+app.use("/api/cart", cartRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.get("/", (req, res) => {
     res.send("E-Commerce Order Management API is running");

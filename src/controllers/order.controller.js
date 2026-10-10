@@ -1,6 +1,8 @@
 import Order from "../models/order.js";
 import OrderItem from "../models/orderItem.js";
 import Product from "../models/product.js";
+import Cart from "../models/cart.js";
+import sequelize from "../config/db.js";
 
 export const createOrder = async (req, res) => {
     try {
@@ -189,4 +191,93 @@ if (!allowedStatuses.includes(status)) {
         error: error.message
     });
 }
+};
+
+export const checkoutFromCart = async (req, res) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        const userId = req.user.id;
+        const cartItems = await Cart.findAll({
+        where: { userId },
+        include: [{
+            model: Product,
+            required: true
+        }],
+        transaction
+        });
+                if (cartItems.length === 0) {
+            await transaction.rollback();
+            return res.status(400).json({
+                message: "Your cart is empty"
+            });
+        }
+                let totalAmount = 0;
+
+        for (const item of cartItems) {
+            totalAmount += Number(item.Product.price) * item.quantity;
+        }
+                for (const item of cartItems) {
+            const product = await Product.findByPk(item.productId, {
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            });
+
+            if (!product) {
+                await transaction.rollback();
+                return res.status(404).json({
+                    message: "Product not found"
+                });
+            }
+
+            if (product.stock < item.quantity) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    message: `Not enough stock for ${product.name}`
+                });
+            }
+        }
+                const order = await Order.create({
+            userId,
+            totalAmount
+        }, { transaction });
+
+                for (const item of cartItems) {
+            const product = await Product.findByPk(item.productId, {
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            });
+
+            await OrderItem.create({
+                orderId: order.id,
+                productId: product.id,
+                quantity: item.quantity,
+                price: product.price
+            }, { transaction });
+
+            product.stock -= item.quantity;
+            await product.save({ transaction });
+        }
+                await Cart.destroy({
+            where: { userId },
+            transaction
+        });
+
+                await transaction.commit();
+
+        return res.status(201).json({
+            message: "Checkout successful",
+            order
+        });
+
+            } catch (error) {
+        await transaction.rollback();
+
+        console.error("Checkout error:", error.message);
+
+        return res.status(500).json({
+            message: "Checkout failed",
+            error: error.message
+        });
+    }
 };
